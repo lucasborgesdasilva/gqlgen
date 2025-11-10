@@ -15,7 +15,7 @@ type Category struct {
 }
 
 // NewCategory cria uma nova instância de Category.
-func NewCategory(db *sql.DB, id, name, description string) *Category {
+func NewCategory(db *sql.DB) *Category {
 	return &Category{db: db}
 }
 
