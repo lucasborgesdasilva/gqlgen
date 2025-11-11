@@ -11,6 +11,27 @@ import (
 	"github.com/devfullcycle/13-GraphQL/graph/model"
 )
 
+// Courses is the resolver for the courses field.
+// Apesar do nome do método ser Courses, ele está associado ao tipo Category, indicando que ele resolve o campo courses dentro do tipo Category no esquema GraphQL.
+// Isso por conta da mudança feita no gqlgen.yml para mapear o modelo Course corretamente.
+func (r *categoryResolver) Courses(ctx context.Context, obj *model.Category) ([]*model.Course, error) {
+	courses, err := r.CourseDB.FindByCategoryID(obj.ID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch courses for category %s: %w", obj.ID, err)
+	}
+
+	var coursesModel []*model.Course
+	for _, course := range courses {
+		coursesModel = append(coursesModel, &model.Course{
+			ID:          course.ID,
+			Name:        course.Name,
+			Description: &course.Description,
+		})
+	}
+
+	return coursesModel, nil
+}
+
 // CreateCategory is the resolver for the createCategory field.
 func (r *mutationResolver) CreateCategory(ctx context.Context, input model.NewCategory) (*model.Category, error) {
 	category, err := r.CategoryDB.Create(input.Name, *input.Description)
@@ -60,8 +81,25 @@ func (r *queryResolver) Categories(ctx context.Context) ([]*model.Category, erro
 
 // Courses is the resolver for the courses field.
 func (r *queryResolver) Courses(ctx context.Context) ([]*model.Course, error) {
-	panic(fmt.Errorf("not implemented: Courses - courses"))
+	courses, err := r.CourseDB.FindAll()
+	if err != nil {
+		return nil, err
+	}
+
+	var coursesModel []*model.Course
+	for _, course := range courses {
+		coursesModel = append(coursesModel, &model.Course{
+			ID:          course.ID,
+			Name:        course.Name,
+			Description: &course.Description,
+		})
+	}
+
+	return coursesModel, nil
 }
+
+// Category returns CategoryResolver implementation.
+func (r *Resolver) Category() CategoryResolver { return &categoryResolver{r} }
 
 // Mutation returns MutationResolver implementation.
 func (r *Resolver) Mutation() MutationResolver { return &mutationResolver{r} }
@@ -69,5 +107,7 @@ func (r *Resolver) Mutation() MutationResolver { return &mutationResolver{r} }
 // Query returns QueryResolver implementation.
 func (r *Resolver) Query() QueryResolver { return &queryResolver{r} }
 
+// Com essa mudança, agora o gqlgen reconhece os modelos Category e Course definidos em graph/model/category.go e graph/model/course.go, respectivamente. Além disso, os resolvers foram implementados para lidar com as operações de criação e consulta de categorias e cursos.
+type categoryResolver struct{ *Resolver }
 type mutationResolver struct{ *Resolver }
 type queryResolver struct{ *Resolver }
